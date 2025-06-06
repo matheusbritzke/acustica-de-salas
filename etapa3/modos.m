@@ -1,27 +1,11 @@
-% =========================================================================
-% Script: modos_de_sala_retangular.m
-%
-% Descrição:
-%   Obejtivo da etapa 3 do projeto final de acústica de salas
-%
-%
-%
-% Autor: Matheus Britzke
-% Data: 19/05/2025
-% =========================================================================
-
 close all; clear; clc;
 
-
-
-%parametros do ar
 c0 = 343; %[m/s] velocidade do som
 
-% parâmetros da sala:
-
-Lx= 3.92; % [m] maior dimensão da sala
-Ly= 3.82; % [m] segunda dimensão no horizontal
-Lz= 3.2; % [m] altura
+% CERTO
+Lx= 4.37; % [m] maior dimensão da sala
+Ly= 3.36; % [m] segunda dimensão no horizontal
+Lz= 2.85; % [m] altura
 
 Area = Lx*Ly; % area
 V = Area*Lz; % [m^3] volume da sala
@@ -29,145 +13,65 @@ V = Area*Lz; % [m^3] volume da sala
 T60 = 0.5; % [s] 0.5 pq é o pior cenário
 Fs = 2000*sqrt(0.5/V); % [Hz] frequ~encia de shroeder
 
-f=20:1:round(Fs)+200; % [Hz] espectro de frequências
+f=20:1:round(Fs)*2; % [Hz] espectro de frequências
 
-% TABELA DE MODOS
+ndm = 15 ; % numero final em cada eixo dos modos medidos
+modo = 1; % um contador de indice
+for nz=0:ndm
+    for ny=0:ndm
+       for nx=0:ndm
+            fn(modo) = (c0/2)*sqrt( (nx/Lx)^2 + (ny/Ly)^2 + (nz/Lz)^2 );
+            fn_m{modo} = (sprintf('%.f, %.f, %.f', nx, ny, nz));
+            modo = modo+1;
+       end
+    end
+end
+
+
+fn = fn(2:end);
+fn_m = fn_m(2:end);
+
+figure;
+stem(fn, ones(length(fn)), 'Color', 'r', 'LineWidth', 1.2, 'Marker', 'none')
+ylim([0,1.4])
+yticks(1)
+xlim([f(1),f(end)])
+
+xline(fn(1),'--k','LineWidth',1.3)
+xline(Fs,'--k','LineWidth',1.3)
+title('Modos da sala retangular','FontSize', 14);
+subtitle (sprintf('Dimensões: %.2fm x %.2fm x %.2fm',Lx,Ly,Lz), 'FontSize', 12)
+ylabel('Núemro de modos [-]', 'FontSize', 12)
+xlabel('Frequência [Hz]', 'FontSize', 12)
+pbaspect([10 6 1]);
+grid on
+
+%ajustar eixo x
+xticks([20,40,60,80,100,200,300,400])
+ax = gca; % Obtém o handle do eixo atual
+ax.XScale = 'log'; % Define a escala X como logarítmica
+
+%regiões
+
+text(f(1) , 1.3, ' Região X','HorizontalAlignment', 'left', 'FontSize',12)
+text(fn(1) , 1.3, ' Região A','HorizontalAlignment', 'left', 'FontSize',12)
+text( Fs, 1.3, ' Região B','HorizontalAlignment', 'left', 'FontSize',12)
+
+% Ajustar propriedades para exportação
+set(gcf, 'PaperUnits', 'centimeters');      
+set(gcf, 'PaperSize', [45, 45*6/10]);            % Tamanho da página do PDF
+set(gcf, 'PaperPosition', [0, 0, 45, 45*6/10]);   % Ocupa toda a página
+
+% num = 1:1:length(fn);
 % 
-% ndm = 2 ; % numero final em cada eixo dos modos medidos
-% modo = 1; % um contador de indice
-% for nz=0:ndm
-%     for ny=0:ndm
-%        for nx=0:ndm
-%             fn(modo) = (c0/2)*sqrt( (nx/Lx)^2 + (ny/Ly)^2 + (nz/Lz)^2 );
-%             fn_m{modo} = (sprintf('%.f, %.f, %.f', nx, ny, nz));
-%             modo = modo+1;
-%        end
-%     end
-% end
 % 
 % T= table (fn_m(:), fn(:), 'VariableNames',{'Modos','f_n'});
 % T = sortrows (T, 'f_n');
+% num = table (num(:), 'VariableNames',{'nº'});
+% T = [num,T];
 % disp (T)
-
-
-% FORMA MODAL
-% qual modo calcular?
-nx = 3;
-ny = 1;
-nz = 1;
-
-% formando os eixos
-N = Lx*100; %resolução
-eixo_x = linspace(0, Lx, N);
-eixo_y = linspace(0, Ly, N);
-eixo_z = linspace(0, Lz, N);
-
-modo_x = nx > 0;
-modo_y = ny > 0;
-modo_z = nz > 0;
-
-dim_ativa = modo_x + modo_y + modo_z;
-
-switch dim_ativa
-    case 1  % Modo 1D
-        if modo_x
-            [X, Y] = meshgrid(eixo_x, eixo_y);
-            phi = cos(nx*pi*X/Lx);  % Repete valor de phi em Y
-            imagesc(eixo_x, eixo_y, abs(phi));
-            xlabel('x (m)'); ylabel('y (m)');
-
-        elseif modo_y
-            [X, Y] = meshgrid(eixo_x, eixo_y);
-            phi = cos(ny*pi*Y/Ly);  % Repete valor de phi em X
-            imagesc(eixo_x, eixo_y, abs(phi));
-            xlabel('x (m)'); ylabel('y (m)');
-
-        elseif modo_z
-            [X, Z] = meshgrid(eixo_x, eixo_z);
-            phi = cos(nz*pi*Z/Lz);  % Repete valor de phi em X
-            imagesc(eixo_x, eixo_z, abs(phi));
-            xlabel('x (m)'); ylabel('z (m)');
-        end
-
-        colormap(gray); axis xy;
-        title('Modo 1D');
-        colorbar;
-
-    case 2  % Modo 2D
-        if ~modo_z  % xy
-            [X, Y] = meshgrid(eixo_x, eixo_y);
-            phi = cos(nx*pi*X/Lx) .* cos(ny*pi*Y/Ly);
-            imagesc(eixo_x, eixo_y, abs(phi));
-            xlabel('x (m)'); ylabel('y (m)');
-        elseif ~modo_y  % xz
-            [X, Z] = meshgrid(eixo_x, eixo_z);
-            phi = cos(nx*pi*X/Lx) .* cos(nz*pi*Z/Lz);
-            imagesc(eixo_x, eixo_z, abs(phi));
-            xlabel('x (m)'); ylabel('z (m)');
-        else  % yz
-            [Y, Z] = meshgrid(eixo_y, eixo_z);
-            phi = cos(ny*pi*Y/Ly) .* cos(nz*pi*Z/Lz);
-            imagesc(eixo_y, eixo_z, abs(phi));
-            xlabel('y (m)'); ylabel('z (m)');
-        end
-        colormap(gray); axis xy;
-        title('Modo 2D');
-        colorbar;
-
-    case 3  % Modo 3D
-[EIXO_X_xy0, EIXO_Y_xy0] = meshgrid(eixo_x, eixo_y);
-EIXO_Z_xy0 = zeros(size(EIXO_X_xy0));
-phi_xy0 = cos(nx*pi*EIXO_X_xy0/Lx) .* cos(ny*pi*EIXO_Y_xy0/Ly) .* cos(nz*pi*EIXO_Z_xy0/Lz);
-
-% Face xy no z=Lz
-[EIXO_X_xyLz, EIXO_Y_xyLz] = meshgrid(eixo_x, eixo_y);
-EIXO_Z_xyLz = Lz*ones(size(EIXO_X_xyLz));
-phi_xyLz = cos(nx*pi*EIXO_X_xyLz/Lx) .* cos(ny*pi*EIXO_Y_xyLz/Ly) .* cos(nz*pi*EIXO_Z_xyLz/Lz);
-
-% Face xz no y=0
-[EIXO_X_xz0, EIXO_Z_xz0] = meshgrid(eixo_x, eixo_z);
-EIXO_Y_xz0 = zeros(size(EIXO_X_xz0));
-phi_xz0 = cos(nx*pi*EIXO_X_xz0/Lx) .* cos(ny*pi*EIXO_Y_xz0/Ly) .* cos(nz*pi*EIXO_Z_xz0/Lz);
-
-% Face xz no y=Ly
-[EIXO_X_xzLy, EIXO_Z_xzLy] = meshgrid(eixo_x, eixo_z);
-EIXO_Y_xzLy = Ly*ones(size(EIXO_X_xzLy));
-phi_xzLy = cos(nx*pi*EIXO_X_xzLy/Lx) .* cos(ny*pi*EIXO_Y_xzLy/Ly) .* cos(nz*pi*EIXO_Z_xzLy/Lz);
-
-% Face yz no x=0
-[EIXO_Y_yz0, EIXO_Z_yz0] = meshgrid(eixo_y, eixo_z);
-EIXO_X_yz0 = zeros(size(EIXO_Y_yz0));
-phi_yz0 = cos(nx*pi*EIXO_X_yz0/Lx) .* cos(ny*pi*EIXO_Y_yz0/Ly) .* cos(nz*pi*EIXO_Z_yz0/Lz);
-
-% Face yz no x=Lx
-[EIXO_Y_yzLx, EIXO_Z_yzLx] = meshgrid(eixo_y, eixo_z);
-EIXO_X_yzLx = Lx*ones(size(EIXO_Y_yzLx));
-phi_yzLx = cos(nx*pi*EIXO_X_yzLx/Lx) .* cos(ny*pi*EIXO_Y_yzLx/Ly) .* cos(nz*pi*EIXO_Z_yzLx/Lz);
-
-% Plota as superfícies
-figure; hold on;
-
-surf(EIXO_Y_xy0, EIXO_X_xy0, EIXO_Z_xy0, abs(phi_xy0), 'EdgeColor', 'none');
-surf(EIXO_Y_xyLz, EIXO_X_xyLz, EIXO_Z_xyLz, abs(phi_xyLz), 'EdgeColor', 'none');
-
-surf(EIXO_Y_xz0, EIXO_X_xz0, EIXO_Z_xz0, abs(phi_xz0), 'EdgeColor', 'none');
-surf(EIXO_Y_xzLy, EIXO_X_xzLy, EIXO_Z_xzLy, abs(phi_xzLy), 'EdgeColor', 'none');
-
-surf(EIXO_Y_yz0, EIXO_X_yz0, EIXO_Z_yz0, abs(phi_yz0), 'EdgeColor', 'none');
-surf(EIXO_Y_yzLx, EIXO_X_yzLx, EIXO_Z_yzLx, abs(phi_yzLx), 'EdgeColor', 'none');
-
-colormap(gray);
-colorbar;
-xlabel('y (m)'); ylabel('x (m)'); zlabel('z (m)');
-title('Forma modal nas superfícies externas da sala');
-view(3);
-lighting gouraud;
-camlight;
-daspect([1 1 1])
-view([-1, 1, 1]);
-axis([0, Lx+1, 0, Ly+1, 0, Lz+1])
-grid on
-set(gca, 'XDir','reverse');  % inverte eixo x
-set(gca, 'YDir','reverse');  % inverte eixo y
-
-end
+% 
+% writetable(T, 'teste', ...
+%                'Delimiter', ';', ...
+%                'WriteRowNames', true, ...
+%                'WriteVariableNames', true);
